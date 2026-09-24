@@ -2,21 +2,26 @@ from math import sqrt,inf
 from statistics import mean
 from datetime import date
 from typing import Self,Optional
-    
 
 class Zone:
 
     def __init__(self:Self,name:str,nbPillsRequired :int,x:float,y:float,z:float):
         self.name = name
         self.nbPillsRequired = nbPillsRequired
-        self.priority = 0
+        self.priority:int = 0
         self.x = x
         self.y = y
         self.z = z
 
     def get_cos(self:Self):
         return (self.x,self.y,self.z)
+
+    def set_priority(self,priority:int):
+        self.priority = priority
     
+    def get_nbPillsRequired(self):
+        return self.nbPillsRequired
+
 class Base:
 
     def __init__(self:Self, name:str,x:float,y:float,z:float):
@@ -75,7 +80,7 @@ class Drone:
         self.mission = mission
 
     def start_mission(self:Self):
-        print("Mission started")
+        print(self.name + " est parti en mission")
 
     def get_mission_status(self: Self, mission: Mission):
         NonDeliveredZones:list = []
@@ -110,30 +115,41 @@ class Operator:
         self.base.set_operator(self)#on assigne directement l'opérateur a la base car il n'y en a qu'un
         
     def start_new_mission(self: Self, mission: Mission):
-        drone:Drone = self.select_drone(mission)
-
-        if drone == None:
-            print("Aucun drone n'a les capacités...")
-        else:
-            print("Drone sélectionné : "+drone.get_name())
-
-        if drone is None:
-            return False
-        drone.assign_mission(mission)
-        drone.start_mission()
-        return True
-                    
-    def select_drone(self: Self, mission: Mission):
-        totalDistance = self.total_distance(mission)
+       
+        zonesToAttribute:list = mission.get_zones().copy()
+        startingPoint:tuple = self.base.get_cos()
         totalPills = sum(zone.nbPillsRequired for zone in mission.get_zones())
 
-        print("Distance à parcourir : "+str(totalDistance)+"\nCharge marchande : "+str(totalPills))
-    
-        for drone in self.base.get_drones():
-            if drone.get_autonomy() >= totalDistance and drone.get_payload() >= totalPills:
-                return drone
-        return None
-    
+        print("Distance à parcourir : "+str(self.total_distance(mission))+"\nCharge marchande : "+str(totalPills))
+
+        idrone = 0
+        izone = 0
+        while totalPills > 0:
+            dr = self.base.get_drones()[idrone]
+            droneDist = 0
+            droneLoad = 0
+            dist = self.distance(startingPoint,zonesToAttribute[izone].get_cos())
+            load = zonesToAttribute[izone].get_nbPillsRequired()
+            z = []
+            print("Lancement d'un nouveau drone")
+            while droneDist+dist < dr.get_autonomy() and droneLoad+load < dr.get_payload():
+                z.append(zonesToAttribute[izone])
+                droneDist += dist
+                droneLoad += load
+                totalPills -= load
+                startingPoint = zonesToAttribute[izone].get_cos()
+                izone += 1
+                if totalPills <= 0:break
+                dist = self.distance(startingPoint,zonesToAttribute[izone].get_cos())
+                load = zonesToAttribute[izone].get_nbPillsRequired()
+            if z != []:
+                dr.assign_mission(Mission(z))
+                dr.start_mission()
+            else:
+                print("Ce drone ne peut aller nulle part,il est pas terrible")
+            idrone += 1
+            z = []
+       
     def total_distance(self:Self,mission:Mission):
         totalDistance = 0
         allPos = [self.base.get_cos()] + [z.get_cos() for z in mission.get_zones()] + [self.base.get_cos()]
@@ -141,8 +157,8 @@ class Operator:
                 totalDistance += self.distance(allPos[i],allPos[i+1])
         return totalDistance
     
-    def distance(self:Self,cosA:list,cosB:list):
-        return sqrt((cosA[0]-cosB[0])**2+(cosA[1]-cosB[1])**2+(cosA[2]-cosB[2])**2)
+    def distance(self:Self,coosA:tuple,coosB:tuple):
+        return sqrt((coosA[0]-coosB[0])**2+(coosA[1]-coosB[1])**2+(coosA[2]-coosB[2])**2)
 
     def get_name(self):
         return self.name
@@ -183,7 +199,6 @@ class Logiciel:
 
     def add_zone(self:Self,zone:Zone):
         self.zones.append(zone)
-        #recalculer priorité
 
     def distance(self:Self,base,cos):
         bc = base.get_cos()
