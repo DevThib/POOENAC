@@ -5,7 +5,7 @@ from typing import Self,Optional
 import pint 
 import icontract
 
-ureg= pint.UnitRegistry()
+ureg = pint.UnitRegistry()
 
 class Zone:
     
@@ -18,7 +18,7 @@ class Zone:
         self.y = y
         self.z = z
 
-    def get_cos(self:Self):
+    def get_cos(self:Self):#récupération des coordonnées
         return (self.x,self.y,self.z)
 
     def set_priority(self,priority:int):
@@ -59,13 +59,13 @@ class Mission:
     
     def __init__(self:Self,zones: list):
         self.zones = zones
-        self.status = {zone: None for zone in zones}
+        self.status = {zone: None for zone in zones}#Si la zone n'a pas encore été livrée,on met None,sinon on met l'heure de livraison
         
     def set_status(self:Self,zone:Zone,hour):
         self.status[zone] = hour
 
     def get_status(self:Self,zone:Zone):
-        return self.status[zone] != None
+        return self.status[zone] != None#booléen : vrai si la zone a été livrée,faux sinon
 
     def get_zones(self:Self):
         return self.zones
@@ -92,7 +92,7 @@ class Drone:
     def get_mission_status(self: Self, mission: Mission):
         NonDeliveredZones:list = []
         deliveredZones:list = []
-        for zone in mission.zones:
+        for zone in mission.zones:#une zone qui a une heure de livraison a été livrée
             heure = mission.status[zone]
             if heure is None:
                 NonDeliveredZones.append(zone)
@@ -122,7 +122,6 @@ class Operator:
 
         self.base.set_operator(self)#on assigne directement l'opérateur a la base car il n'y en a qu'un
     
-    
     def start_new_mission(self: Self, mission: Mission):
        
         zonesToAttribute:list = mission.get_zones().copy()
@@ -133,7 +132,7 @@ class Operator:
 
         idrone = 0
         izone = 0
-        while totalPills > 0:
+        while totalPills > 0:#on parcourt les drones et on change dès qu'une drone a atteint sa capcité ou distance max
             if idrone == len(self.base.get_drones()):
                 print("Pas assez de drones disponibles,manque de budget...,échec de la mission")
                 break
@@ -169,7 +168,7 @@ class Operator:
                 totalDistance += self.distance(allPos[i],allPos[i+1])
         return totalDistance
     
-    def distance(self:Self,coosA:tuple,coosB:tuple):
+    def distance(self:Self,coosA:tuple,coosB:tuple):#distance euclidienne
         return sqrt((coosA[0]-coosB[0])**2+(coosA[1]-coosB[1])**2+(coosA[2]-coosB[2])**2)*ureg.km
 
     def get_name(self):
@@ -190,7 +189,7 @@ class Logiciel:
 
         selectedBase:Optional[Base] = None
         minDist = inf*ureg.km
-        for base in self.bases:
+        for base in self.bases:#on prend la base en moyenne la plus proche des trois zones
             d = self.distance(base, (xm, ym, zm))
             if d < minDist:
                 selectedBase = base
